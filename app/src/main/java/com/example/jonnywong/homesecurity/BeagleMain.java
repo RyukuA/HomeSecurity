@@ -1,5 +1,7 @@
 package com.example.jonnywong.homesecurity;
 
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.hardware.Sensor;
@@ -9,9 +11,11 @@ import android.hardware.SensorManager;
 import android.util.Log;
 import android.widget.TextView;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+
 
 public class BeagleMain extends AppCompatActivity implements SensorEventListener {
     private static final int UDP_SERVER_PORT = 45786; //Port Number
@@ -19,11 +23,16 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
     private TextView dataSent;
     private TextView x_axis, y_axis, z_axis;
     private SensorManager mSensorManager;
+
     Sensor accelerometer;
     Sensor magnetometer;
     Float azimut;
     Float pitch;
     Float roll;
+    String udpMsg = "";
+    byte[] sendData = new byte[1024];
+    DatagramPacket packet;
+    DatagramSocket socket;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,9 +44,26 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+       // new BackgroundProcess().execute(azimut, pitch, roll);
+
+
+       // Intent UDPIntent = new Intent(this, UDPConnection.class);
+       // UDPIntent.putExtra("Azimuth", azimut);
+        //startActivity(UDPIntent);
+
+        //new UDPConnection(azimut, "X");
+        //new Client(azimut, "X");
+        //new Thread(new Client(pitch, "Y")).start();
+       // new Thread(new Client(roll, "Z")).start();
+        /*
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } */
 
     }
-
+/*
     public class Client implements Runnable {
         //private final static String BeagleIP = "192.168.7.2";
 
@@ -52,7 +78,7 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
         }
 
         //Constructor for determining which motor to use
-        public Client(float value, String axis) {
+        public Client(Float value, String axis) {
             // TODO Auto-generated constructor stub
             udpMsg = String.valueOf(value) + axis + "\0";
             //This will come in handy on the server side.
@@ -64,6 +90,7 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
 
         //This is the function to run the UDP server
         //I call this function in my overloaded constructors
+
         @Override
         public void run() {
             try {
@@ -96,7 +123,7 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
         }
 
     }
-
+*/
     @Override
     protected void onResume()
     {
@@ -140,14 +167,50 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
                 azimut = Math.round(azimut*1000.0f)/1000.0f;
                 pitch = Math.round(pitch*1000.0f)/1000.0f;
                 roll = Math.round(roll*1000.0f)/1000.0f;
+                new BackgroundProcess().execute(azimut, pitch, roll);
             }
 
         }
+
+       // udpMsg = String.valueOf(azimut) + ", " + String.valueOf(pitch) + ", " + String.valueOf(roll) + "\0";
+        //Log.d("UDPMSG", udpMsg);
+        /*
+        try {
+            // TODO Auto-generated method stub
+            InetAddress serverAddr = InetAddress.getByName("192.168.0.23");
+            //note that 192.168.0.23 is the static IP address we used for the Wi-Fi adapter
+
+            //InetAddress serverAddr = InetAddress.getByName("192.168.7.2"); //Address of the BeagleBone
+
+            socket = new DatagramSocket();
+            sendData = udpMsg.getBytes();
+            //There is also an error with sending data through the DatagramPacket
+
+
+            Log.d("IP", serverAddr.toString()); //This is printing out as /192.168.7.2
+
+            Log.d("Test0", "Before new DatagramPacket\n");
+            packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45678);
+            Log.d("Test1.5", "After the new DatagramPacket\n");
+
+           // socket.send(packet); //This is where the exception is caught. Not sure why yet
+
+            Log.d("Test1", "The program is in the runUDP\n");
+            //dataSent.setText("Data has been sent to the server!");
+        }
+        catch (Exception e)
+        {
+            Log.d("Test5", "Basic Exception", e);
+        }
+        */
         try {
             Log.d("X Axis", Float.toString(azimut));
+            Log.d("Y Axis", Float.toString(pitch));
+            Log.d("Z Axis", Float.toString(roll));
             x_axis.setText( "Orientation X: " + Float.toString(azimut));
             y_axis.setText("Orientation Y: " + Float.toString(pitch));
             z_axis.setText("Orientation Z: " + Float.toString(roll));
+            /*
             new Thread(new Client(azimut, "X")).start();
             new Thread(new Client(pitch, "Y")).start();
             new Thread(new Client(roll, "Z")).start();
@@ -155,11 +218,80 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
                 Thread.sleep(50);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
+            }*/
+            //new BackgroundProcess().execute(azimut, pitch, roll);
 
         }catch (NullPointerException e) {
             e.printStackTrace();
         }
+        /*
+        BeagleMain.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    socket.send(packet);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    */
+    }
+
+
+
+    public class BackgroundProcess extends AsyncTask<Float, Void,  Float> {
+        @Override
+        protected Float doInBackground(Float... arg0) {
+
+            Float azimut = arg0[0];
+            Float pitch = arg0[1];
+            Float roll = arg0[2];
+            udpMsg = String.valueOf(azimut) + ", " + String.valueOf(pitch) + ", " + String.valueOf(roll) + "\0";
+            Log.d("Udp String", udpMsg);
+            try {
+                // TODO Auto-generated method stub
+                InetAddress serverAddr = InetAddress.getByName("192.168.0.23");
+                //note that 192.168.0.23 is the static IP address we used for the Wi-Fi adapter
+
+                //InetAddress serverAddr = InetAddress.getByName("192.168.7.2"); //Address of the BeagleBone
+
+                DatagramSocket socket = new DatagramSocket();
+                sendData = udpMsg.getBytes();
+                //There is also an error with sending data through the DatagramPacket
+
+
+                Log.d("IP", serverAddr.toString()); //This is printing out as /192.168.7.2
+
+                Log.d("Test0", "Before new DatagramPacket\n");
+                DatagramPacket packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45678);
+                Log.d("Test1.5", "After the new DatagramPacket\n");
+
+                socket.send(packet); //This is where the exception is caught. Not sure why yet
+
+                Log.d("Test1", "The program is in the runUDP\n");
+                //dataSent.setText("Data has been sent to the server!");
+            }
+            catch (Exception e)
+            {
+                Log.d("Test5", "Basic Exception", e);
+            }
+
+
+
+
+           // new Thread(new Client(azimut, "X")).start();
+           // new Thread(new Client(pitch, "Y")).start();
+           // new Thread(new Client(roll, "Z")).start();
+            /*
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } */
+            return azimut;
+        }
+
 
     }
 
