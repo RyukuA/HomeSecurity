@@ -19,7 +19,7 @@ import java.net.InetAddress;
 
 public class BeagleMain extends AppCompatActivity implements SensorEventListener {
     private static final int UDP_SERVER_PORT = 45786; //Port Number
-    private String BeagleIP = "192.168.7.2";
+    private String BeagleIP = "10.0.0.3";
     private TextView dataSent;
     private TextView x_axis, y_axis, z_axis;
     private SensorManager mSensorManager;
@@ -159,15 +159,27 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
             boolean success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic);
             if(success) {
                 float orientation[] = new float[3];
-                SensorManager.getOrientation(R, orientation);
-                azimut = orientation[0];
-                pitch = orientation[1];
-                roll = orientation[2];
 
-                azimut = Math.round(azimut*1000.0f)/1000.0f;
-                pitch = Math.round(pitch*1000.0f)/1000.0f;
-                roll = Math.round(roll*1000.0f)/1000.0f;
-                new BackgroundProcess().execute(azimut, pitch, roll);
+                    SensorManager.getOrientation(R, orientation);
+
+                    azimut = orientation[0]; //Z Azis
+                    pitch = orientation[1]; //X Axis
+                    roll = orientation[2]; //Y Axis
+
+                    azimut = Math.round(azimut * 1000.0f) / 1000.0f;
+                    pitch = Math.round(pitch * 1000.0f) / 1000.0f;
+                    roll = Math.round(roll * 1000.0f) / 1000.0f;
+
+
+                    new BackgroundProcess().execute(azimut, pitch, roll);
+                /*
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                */
+
             }
 
         }
@@ -204,12 +216,12 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
         }
         */
         try {
-            Log.d("X Axis", Float.toString(azimut));
-            Log.d("Y Axis", Float.toString(pitch));
-            Log.d("Z Axis", Float.toString(roll));
-            x_axis.setText( "Orientation X: " + Float.toString(azimut));
-            y_axis.setText("Orientation Y: " + Float.toString(pitch));
-            z_axis.setText("Orientation Z: " + Float.toString(roll));
+            Log.d("X Axis", Float.toString(pitch));
+            Log.d("Y Axis", Float.toString(roll));
+            Log.d("Z Axis", Float.toString(azimut));
+            x_axis.setText( "Orientation X: " + Float.toString(pitch));
+            y_axis.setText("Orientation Y: " + Float.toString(roll));
+            z_axis.setText("Orientation Z: " + Float.toString(azimut));
             /*
             new Thread(new Client(azimut, "X")).start();
             new Thread(new Client(pitch, "Y")).start();
@@ -247,11 +259,12 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
             Float azimut = arg0[0];
             Float pitch = arg0[1];
             Float roll = arg0[2];
-            udpMsg = String.valueOf(azimut) + ", " + String.valueOf(pitch) + ", " + String.valueOf(roll) + "\0";
+           // udpMsg = String.valueOf(azimut) + ", " + String.valueOf(pitch) + ", " + String.valueOf(roll) + "\0";
+            udpMsg =  String.valueOf(pitch*1000) + "," + String.valueOf(roll*1000) + "\0";
             Log.d("Udp String", udpMsg);
             try {
                 // TODO Auto-generated method stub
-                InetAddress serverAddr = InetAddress.getByName("192.168.0.23");
+                InetAddress serverAddr = InetAddress.getByName("10.0.0.3");
                 //note that 192.168.0.23 is the static IP address we used for the Wi-Fi adapter
 
                 //InetAddress serverAddr = InetAddress.getByName("192.168.7.2"); //Address of the BeagleBone
@@ -264,7 +277,7 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
                 Log.d("IP", serverAddr.toString()); //This is printing out as /192.168.7.2
 
                 Log.d("Test0", "Before new DatagramPacket\n");
-                DatagramPacket packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45678);
+                DatagramPacket packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45786);
                 Log.d("Test1.5", "After the new DatagramPacket\n");
 
                 socket.send(packet); //This is where the exception is caught. Not sure why yet
@@ -276,6 +289,8 @@ public class BeagleMain extends AppCompatActivity implements SensorEventListener
             {
                 Log.d("Test5", "Basic Exception", e);
             }
+
+
 
 
 

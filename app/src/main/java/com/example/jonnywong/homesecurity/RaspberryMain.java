@@ -1,6 +1,7 @@
 package com.example.jonnywong.homesecurity;
 
 import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.Button;
@@ -17,11 +18,12 @@ import android.util.Log;
 import android.widget.TextView;
 
 public class RaspberryMain extends AppCompatActivity implements OnClickListener{
-    private static final int UDP_SERVER_PORT = 45786; //Port Number
+    private static final int UDP_SERVER_PORT = 45788; //Port Number
     private String RaspberryIP = "192.168.7.2";
     private Button lock, unlock, lights_on, lights_off;
     private TextView dataSent;
-
+    String udpMsg = "";
+    byte[] sendData = new byte[1024];
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,25 +45,25 @@ public class RaspberryMain extends AppCompatActivity implements OnClickListener{
     {
         int lock_value = 200;
         int unlock_value = 0;
-        int lights_off_value = 300;
-        int lights_on_value = 0;
+        Double lights_off_value = 0d;
+        Double lights_on_value = 1d;
         switch (v.getId())
         {
             case R.id.lock:
-                new Thread(new Client(lock_value, "L")).start();
+
                 break;
             case R.id.unlock:
-                new Thread(new Client(unlock_value, "U")).start();
+
                 break;
             case R.id.lights_off:
-                new Thread(new Client(lights_off_value, "F")).start();
+                new BackgroundProcess().execute(lights_off_value);
                 break;
             case R.id.lights_on:
-                new Thread(new Client(lights_on_value, "N")).start();
+                new BackgroundProcess().execute(lights_on_value);
                 break;
         }
     }
-
+    /*
     public class Client implements Runnable {
         //private final static String BeagleIP = "192.168.7.2";
 
@@ -92,8 +94,7 @@ public class RaspberryMain extends AppCompatActivity implements OnClickListener{
         public void run() {
             try {
                 // TODO Auto-generated method stub
-                InetAddress serverAddr = InetAddress.getByName("192.168.0.23");
-                //note that 192.168.0.23 is the static IP address we used for the Wi-Fi adapter
+                InetAddress serverAddr = InetAddress.getByName("10.0.0.13");               //note that 192.168.0.23 is the static IP address we used for the Wi-Fi adapter
 
                 //InetAddress serverAddr = InetAddress.getByName("192.168.7.2"); //Address of the BeagleBone
 
@@ -105,7 +106,7 @@ public class RaspberryMain extends AppCompatActivity implements OnClickListener{
                 Log.d("IP", serverAddr.toString()); //This is printing out as /192.168.7.2
 
                 Log.d("Test0", "Before new DatagramPacket\n");
-                DatagramPacket packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45678);
+                DatagramPacket packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45889);
                 Log.d("Test1.5", "After the new DatagramPacket\n");
 
                 socket.send(packet); //This is where the exception is caught. Not sure why yet
@@ -118,6 +119,50 @@ public class RaspberryMain extends AppCompatActivity implements OnClickListener{
                 Log.d("Test5", "Basic Exception", e);
             }
         }
+
+    } */
+
+    public class BackgroundProcess extends AsyncTask<Double, Void, Double> {
+        @Override
+        protected Double doInBackground(Double... arg0) {
+
+            double value = arg0[0];
+            int change = (int) value;
+            // udpMsg = String.valueOf(azimut) + ", " + String.valueOf(pitch) + ", " + String.valueOf(roll) + "\0";
+           // udpMsg =  String.valueOf(pitch*1000) + "," + String.valueOf(roll*1000) + "\0";
+            udpMsg =  String.valueOf(change) + "\0";
+            Log.d("Udp String", udpMsg);
+            try {
+                // TODO Auto-generated method stub
+                InetAddress serverAddr = InetAddress.getByName("10.0.0.13");
+                //note that 192.168.0.23 is the static IP address we used for the Wi-Fi adapter
+
+                //InetAddress serverAddr = InetAddress.getByName("192.168.7.2"); //Address of the BeagleBone
+
+                DatagramSocket socket = new DatagramSocket();
+                sendData = udpMsg.getBytes();
+                //There is also an error with sending data through the DatagramPacket
+
+
+                Log.d("IP", serverAddr.toString()); //This is printing out as /192.168.7.2
+
+                Log.d("Test0", "Before new DatagramPacket\n");
+                DatagramPacket packet = new DatagramPacket(sendData, sendData.length, serverAddr, 45889);
+                Log.d("Test1.5", "After the new DatagramPacket\n");
+
+                socket.send(packet); //This is where the exception is caught. Not sure why yet
+
+                Log.d("Test1", "The program is in the runUDP\n");
+                //dataSent.setText("Data has been sent to the server!");
+            }
+            catch (Exception e)
+            {
+                Log.d("Test5", "Basic Exception", e);
+            }
+
+            return value;
+        }
+
 
     }
 }
